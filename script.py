@@ -52,6 +52,43 @@ def is_within_last_week(text):
         return False
     return True
 
+def get_existing_notion_urls():
+    """Fetches all URLs already stored in the Notion database to prevent long-term duplicates."""
+    notion_url = f"https://api.notion.com/v1/databases/{NOTION_DATABASE_ID}/query"
+    headers = {
+        "Authorization": f"Bearer {NOTION_TOKEN}",
+        "Content-Type": "application/json",
+        "Notion-Version": "2022-06-28"
+    }
+    
+    existing_urls = set()
+    has_more = True
+    start_cursor = None
+
+    while has_more:
+        payload = {}
+        if start_cursor:
+            payload["start_cursor"] = start_cursor
+            
+        res = requests.post(notion_url, json=payload, headers=headers)
+        if res.status_code == 200:
+            data = res.json()
+            for page in data.get("results", []):
+                props = page.get("properties", {})
+                url_prop = props.get("URL", {})
+                if url_prop.get("type") == "url":
+                    url_val = url_prop.get("url")
+                    if url_val:
+                        existing_urls.add(url_val)
+            has_more = data.get("has_more", False)
+            start_cursor = data.get("next_cursor")
+        else:
+            print(f"Failed to fetch existing Notion pages: {res.text}")
+            break
+            
+    print(f"Loaded {len(existing_urls)} existing jobs from Notion to avoid duplicates.")
+    return existing_urls
+
 def search_duckduckgo(query):
     print(f"Searching DuckDuckGo for: {query}")
     job_results = []
@@ -107,7 +144,9 @@ def add_to_notion(job):
         print(f"FAILED to add to Notion ({res.status_code}): {res.text}")
 
 def main():
-    seen_urls = set()
+    # Pre-populate seen_urls with everything already stored in your Notion database
+    seen_urls = get_existing_notion_urls()
+    
     for query in SEARCH_QUERIES:
         items = search_duckduckgo(query)
         for item in items:
