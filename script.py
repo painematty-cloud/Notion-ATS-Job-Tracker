@@ -97,11 +97,7 @@ def add_to_notion(job):
             "URL": {"url": job["link"]},
             "Stage": {"status": {"name": "Not Started"}},
             "Priority Tier": {"select": {"name": "Tier 1"}},
-            # Fields that cannot be scraped are populated with "update this field" where supported:
-            "Target Base Salary": {"rich_text": [{"text": {"content": "update this field"}}]},
-            "LinkedIn Pitch": {"rich_text": [{"text": {"content": "update this field"}}]},
-            # Multi-select requires a valid option list
-            "Core Craft Keywords": {"multi_select": [{"name": "update this field"}]}
+            "Target Base Salary": {"rich_text": [{"text": {"content": "update this field"}}]}
         }
     }
     
