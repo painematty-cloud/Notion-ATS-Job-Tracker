@@ -1,16 +1,17 @@
 import os
 import requests
-from duckduckgo_search import DDGS
+from ddgs import DDGS
 
 NOTION_TOKEN = os.getenv("NOTION_TOKEN")
 NOTION_DATABASE_ID = os.getenv("NOTION_DATABASE_ID")
 
+# Simplified search queries that DuckDuckGo handles without dropping results
 SEARCH_QUERIES = [
-    'jobs.ashbyhq.com Product Designer Senior Lead Staff Remote UK EU',
-    'boards.greenhouse.io Product Designer Senior Lead Staff Remote UK EU',
-    'apply.workable.com Product Designer Senior Lead Staff Remote UK EU',
-    'jobs.lever.co Product Designer Senior Lead Staff Remote UK EU',
-    'myworkdayjobs.com Product Designer Senior Lead Staff Remote UK EU'
+    'site:boards.greenhouse.io Senior Product Designer remote',
+    'site:jobs.ashbyhq.com Senior Product Designer remote',
+    'site:apply.workable.com Senior Product Designer remote',
+    'site:jobs.lever.co Senior Product Designer remote',
+    'site:myworkdayjobs.com Senior Product Designer remote'
 ]
 
 def search_duckduckgo(query):
