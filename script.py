@@ -1,10 +1,9 @@
 import os
 import requests
+from duckduckgo_search import DDGS
 
 NOTION_TOKEN = os.getenv("NOTION_TOKEN")
 NOTION_DATABASE_ID = os.getenv("NOTION_DATABASE_ID")
-GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
-GOOGLE_CX = os.getenv("GOOGLE_CX")
 
 SEARCH_QUERIES = [
     'site:jobs.ashbyhq.com ("Senior" OR "Lead" OR "Principal" OR "Staff") ("Product Designer" OR "UX Designer" OR "UX/UI Designer") ("Remote" OR "UK" OR "EU") -agency -consultancy -contract -freelance -junior -mid',
@@ -14,14 +13,21 @@ SEARCH_QUERIES = [
     'site:myworkdayjobs.com ("Senior" OR "Lead" OR "Principal" OR "Staff") ("Product Designer" OR "UX Designer" OR "UX/UI Designer") ("Remote" OR "UK" OR "EU") -agency -consultancy -contract -freelance -junior -mid'
 ]
 
-def search_google(query):
-    url = "https://www.googleapis.com/customsearch/v1"
-    params = {"key": GOOGLE_API_KEY, "cx": GOOGLE_CX, "q": query}
-    response = requests.get(url, params=params)
-    if response.status_code == 200:
-        return response.json().get("items", [])
-    print(f"Error fetching Google Search results: {response.text}")
-    return []
+def search_duckduckgo(query):
+    print(f"Searching DuckDuckGo for: {query}")
+    job_results = []
+    try:
+        with DDGS() as ddgs:
+            # Fetch top 5 results per site query
+            results = list(ddgs.text(query, max_results=5))
+            for r in results:
+                job_results.append({
+                    "title": r.get("title", "Job Posting"),
+                    "link": r.get("href", "")
+                })
+    except Exception as e:
+        print(f"Error fetching DuckDuckGo search results: {e}")
+    return job_results
 
 def add_to_notion(title, url_link):
     notion_url = "https://api.notion.com/v1/pages"
@@ -45,7 +51,7 @@ def add_to_notion(title, url_link):
 
 def main():
     for query in SEARCH_QUERIES:
-        items = search_google(query)
+        items = search_duckduckgo(query)
         for item in items:
             title = item.get("title", "Job Posting")
             link = item.get("link", "")
