@@ -1,5 +1,6 @@
 import os
 import re
+import time
 from datetime import datetime, timedelta, date
 import requests
 from ddgs import DDGS
@@ -53,7 +54,6 @@ def is_within_last_week(text):
     return True
 
 def get_existing_notion_urls():
-    """Fetches all URLs already stored in the Notion database to prevent long-term duplicates."""
     notion_url = f"https://api.notion.com/v1/databases/{NOTION_DATABASE_ID}/query"
     headers = {
         "Authorization": f"Bearer {NOTION_TOKEN}",
@@ -89,30 +89,35 @@ def get_existing_notion_urls():
     print(f"Loaded {len(existing_urls)} existing jobs from Notion to avoid duplicates.")
     return existing_urls
 
-def search_duckduckgo(query):
-    print(f"Searching DuckDuckGo for: {query}")
-    job_results = []
-    try:
-        with DDGS() as ddgs:
-            results = list(ddgs.text(query, max_results=10, backend='html'))
-            print(f"Found {len(results)} raw results for query.")
-            for r in results:
-                title = r.get("title", "Job Posting")
-                link = r.get("href", "")
-                snippet = r.get("body", "")
-                if link:
-                    if is_within_last_week(snippet + " " + title):
-                        job_results.append({
-                            "title": title,
-                            "link": link,
-                            "company": extract_company_name(title, link),
-                            "platform": detect_ats_platform(link)
-                        })
-                    else:
-                        print(f"Filtered out old listing (> 7 days): {title}")
-    except Exception as e:
-        print(f"Error fetching DuckDuckGo search results: {e}")
-    return job_results
+def search_duckduckgo_with_retry(query, retries=3):
+    """Searches with built-in retry logic and timeouts to prevent drops."""
+    for attempt in range(retries):
+        try:
+            print(f"Searching for query (Attempt {attempt + 1}): {query}")
+            job_results = []
+            with DDGS() as ddgs:
+                results = list(ddgs.text(query, max_results=10, backend='html'))
+                print(f"Found {len(results)} raw results for query.")
+                for r in results:
+                    title = r.get("title", "Job Posting")
+                    link = r.get("href", "")
+                    snippet = r.get("body", "")
+                    if link:
+                        if is_within_last_week(snippet + " " + title):
+                            job_results.append({
+                                "title": title,
+                                "link": link,
+                                "company": extract_company_name(title, link),
+                                "platform": detect_ats_platform(link)
+                            })
+            return job_results
+        except Exception as e:
+            print(f"Attempt {attempt + 1} failed due to error: {e}")
+            if attempt < retries - 1:
+                time.sleep(5) # Wait 5 seconds before retrying
+            else:
+                print("All retries failed for this query.")
+                return []
 
 def add_to_notion(job):
     notion_url = "https://api.notion.com/v1/pages"
@@ -144,16 +149,18 @@ def add_to_notion(job):
         print(f"FAILED to add to Notion ({res.status_code}): {res.text}")
 
 def main():
-    # Pre-populate seen_urls with everything already stored in your Notion database
     seen_urls = get_existing_notion_urls()
     
     for query in SEARCH_QUERIES:
-        items = search_duckduckgo(query)
+        items = search_duckduckgo_with_retry(query)
         for item in items:
             link = item.get("link", "")
             if link and link not in seen_urls:
                 seen_urls.add(link)
                 add_to_notion(item)
+        
+        # Pause for 3 seconds between queries to prevent triggering rate limits/timeouts
+        time.sleep(3)
 
 if __name__ == "__main__":
     main()
