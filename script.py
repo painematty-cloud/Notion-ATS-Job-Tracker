@@ -5,7 +5,6 @@ from ddgs import DDGS
 NOTION_TOKEN = os.getenv("NOTION_TOKEN")
 NOTION_DATABASE_ID = os.getenv("NOTION_DATABASE_ID")
 
-# Your exact search queries with full operators intact
 SEARCH_QUERIES = [
     'site:jobs.ashbyhq.com ("Senior" OR "Lead" OR "Principal" OR "Staff") ("Product Designer" OR "UX Designer" OR "UX/UI Designer") ("Remote" OR "UK" OR "EU") -agency -consultancy -contract -freelance -junior -mid',
     'site:boards.greenhouse.io ("Senior" OR "Lead" OR "Principal" OR "Staff") ("Product Designer" OR "UX Designer" OR "UX/UI Designer") ("Remote" OR "UK" OR "EU") -agency -consultancy -contract -freelance -junior -mid',
@@ -19,7 +18,6 @@ def search_duckduckgo(query):
     job_results = []
     try:
         with DDGS() as ddgs:
-            # Using backend='html' forces DuckDuckGo to process complex operators accurately
             results = list(ddgs.text(query, max_results=5, backend='html'))
             print(f"Found {len(results)} results for query.")
             for r in results:
