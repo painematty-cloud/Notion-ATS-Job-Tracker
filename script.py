@@ -6,11 +6,11 @@ NOTION_TOKEN = os.getenv("NOTION_TOKEN")
 NOTION_DATABASE_ID = os.getenv("NOTION_DATABASE_ID")
 
 SEARCH_QUERIES = [
-    'site:jobs.ashbyhq.com Product Designer remote UK EU',
-    'site:boards.greenhouse.io Product Designer remote UK EU',
-    'site:apply.workable.com Product Designer remote UK EU',
-    'site:jobs.lever.co Product Designer remote UK EU',
-    'site:myworkdayjobs.com Product Designer remote UK EU'
+    'jobs.ashbyhq.com Product Designer Senior Lead Staff Remote UK EU',
+    'boards.greenhouse.io Product Designer Senior Lead Staff Remote UK EU',
+    'apply.workable.com Product Designer Senior Lead Staff Remote UK EU',
+    'jobs.lever.co Product Designer Senior Lead Staff Remote UK EU',
+    'myworkdayjobs.com Product Designer Senior Lead Staff Remote UK EU'
 ]
 
 def search_duckduckgo(query):
