@@ -95,7 +95,6 @@ def add_to_notion(job):
             "ATS Platform": {"select": {"name": job["platform"]}},
             "Date Added": {"date": {"start": today_date}},
             "URL": {"url": job["link"]},
-            "Stage": {"status": {"name": "Not Started"}},
             "Priority Tier": {"select": {"name": "Tier 1"}},
             "Target Base Salary": {"rich_text": [{"text": {"content": "update this field"}}]}
         }
