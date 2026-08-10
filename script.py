@@ -9,11 +9,11 @@ NOTION_TOKEN = os.getenv("NOTION_TOKEN")
 NOTION_DATABASE_ID = os.getenv("NOTION_DATABASE_ID")
 
 SEARCH_QUERIES = [
-    'site:jobs.ashbyhq.com ("Senior" OR "Lead" OR "Principal" OR "Staff") ("Product Designer" OR "UX Designer" OR "UX/UI Designer") ("Remote" OR "UK" OR "EU") -agency -consultancy -contract -freelance -junior -mid',
-    'site:boards.greenhouse.io ("Senior" OR "Lead" OR "Principal" OR "Staff") ("Product Designer" OR "UX Designer" OR "UX/UI Designer") ("Remote" OR "UK" OR "EU") -agency -consultancy -contract -freelance -junior -mid',
-    'site:apply.workable.com ("Senior" OR "Lead" OR "Principal" OR "Staff") ("Product Designer" OR "UX Designer" OR "UX/UI Designer") ("Remote" OR "UK" OR "EU") -agency -consultancy -contract -freelance -junior -mid',
-    'site:jobs.lever.co ("Senior" OR "Lead" OR "Principal" OR "Staff") ("Product Designer" OR "UX Designer" OR "UX/UI Designer") ("Remote" OR "UK" OR "EU") -agency -consultancy -contract -freelance -junior -mid',
-    'site:myworkdayjobs.com ("Senior" OR "Lead" OR "Principal" OR "Staff") ("Product Designer" OR "UX Designer" OR "UX/UI Designer") ("Remote" OR "UK" OR "EU") -agency -consultancy -contract -freelance -junior -mid'
+    'site:jobs.ashbyhq.com ("Senior" OR "Lead") ("Product Designer" OR "UX Designer") ("Remote" OR "UK" OR "EU" OR "EMEA") -agency -consultancy -contract -freelance -junior -mid -"principal" -"staff" -"director" -"ui/ux" -"US" -"USA" -"United States" -"North America" -"APAC" -"LATAM"',
+    'site:boards.greenhouse.io ("Senior" OR "Lead") ("Product Designer" OR "UX Designer") ("Remote" OR "UK" OR "EU" OR "EMEA") -agency -consultancy -contract -freelance -junior -mid -"principal" -"staff" -"director" -"ui/ux" -"US" -"USA" -"United States" -"North America" -"APAC" -"LATAM"',
+    'site:apply.workable.com ("Senior" OR "Lead") ("Product Designer" OR "UX Designer") ("Remote" OR "UK" OR "EU" OR "EMEA") -agency -consultancy -contract -freelance -junior -mid -"principal" -"staff" -"director" -"ui/ux" -"US" -"USA" -"United States" -"North America" -"APAC" -"LATAM"',
+    'site:jobs.lever.co ("Senior" OR "Lead") ("Product Designer" OR "UX Designer") ("Remote" OR "UK" OR "EU" OR "EMEA") -agency -consultancy -contract -freelance -junior -mid -"principal" -"staff" -"director" -"ui/ux" -"US" -"USA" -"United States" -"North America" -"APAC" -"LATAM"',
+    'site:myworkdayjobs.com ("Senior" OR "Lead") ("Product Designer" OR "UX Designer") ("Remote" OR "UK" OR "EU" OR "EMEA") -agency -consultancy -contract -freelance -junior -mid -"principal" -"staff" -"director" -"ui/ux" -"US" -"USA" -"United States" -"North America" -"APAC" -"LATAM"'
 ]
 
 def detect_ats_platform(url):
@@ -34,7 +34,7 @@ def extract_company_name(title, url):
         parts = title.split(" at ")
         if len(parts) > 1:
             return parts[-1].split(" - ")[0].strip()
-    
+     
     match = re.search(r'https?://(?:www\.)?([^/]+)', url)
     if match:
         domain = match.group(1)
@@ -53,6 +53,41 @@ def is_within_last_week(text):
         return False
     return True
 
+def title_passes_criteria(title, snippet):
+    combined_text = (title + " " + snippet).lower()
+    
+    # Exclude unwanted locations / regions explicitly
+    unwanted_locations = [
+        "united states", "usa", " u.s. ", "us only", "north america", 
+        "apac", "latam", "south america", "asia pacific", "australia", 
+        "canada", "california", "new york"
+    ]
+    if any(loc in combined_text for loc in unwanted_locations):
+        return False
+        
+    title_lower = title.lower()
+    
+    # Exclude unwanted seniority levels explicitly
+    unwanted_levels = ["junior", "mid", "intermediate", "principal", "staff", "director", "head of", "vp"]
+    if any(level in title_lower for level in unwanted_levels):
+        return False
+        
+    # Ensure target seniority exists (Senior or Lead)
+    has_target_seniority = any(lvl in title_lower for lvl in ["senior", "lead"])
+    if not has_target_seniority:
+        return False
+        
+    # Ensure target role exists (Product Designer or UX Designer)
+    has_target_role = any(role in title_lower for role in ["product designer", "ux designer"])
+    if not has_target_role:
+        return False
+        
+    # Exclude UI/UX starting or focused roles (e.g., "UI/UX Designer")
+    if "ui/ux" in title_lower or title_lower.startswith("ui/ux"):
+        return False
+        
+    return True
+
 def get_existing_notion_urls():
     notion_url = f"https://api.notion.com/v1/databases/{NOTION_DATABASE_ID}/query"
     headers = {
@@ -60,7 +95,7 @@ def get_existing_notion_urls():
         "Content-Type": "application/json",
         "Notion-Version": "2022-06-28"
     }
-    
+     
     existing_urls = set()
     has_more = True
     start_cursor = None
@@ -69,7 +104,7 @@ def get_existing_notion_urls():
         payload = {}
         if start_cursor:
             payload["start_cursor"] = start_cursor
-            
+             
         res = requests.post(notion_url, json=payload, headers=headers)
         if res.status_code == 200:
             data = res.json()
@@ -85,7 +120,7 @@ def get_existing_notion_urls():
         else:
             print(f"Failed to fetch existing Notion pages: {res.text}")
             break
-            
+             
     print(f"Loaded {len(existing_urls)} existing jobs from Notion to avoid duplicates.")
     return existing_urls
 
@@ -103,7 +138,8 @@ def search_duckduckgo_with_retry(query, retries=3):
                     link = r.get("href", "")
                     snippet = r.get("body", "")
                     if link:
-                        if is_within_last_week(snippet + " " + title):
+                        combined_text = snippet + " " + title
+                        if is_within_last_week(combined_text) and title_passes_criteria(title, snippet):
                             job_results.append({
                                 "title": title,
                                 "link": link,
@@ -114,7 +150,7 @@ def search_duckduckgo_with_retry(query, retries=3):
         except Exception as e:
             print(f"Attempt {attempt + 1} failed due to error: {e}")
             if attempt < retries - 1:
-                time.sleep(5) # Wait 5 seconds before retrying
+                time.sleep(5)
             else:
                 print("All retries failed for this query.")
                 return []
@@ -126,9 +162,9 @@ def add_to_notion(job):
         "Content-Type": "application/json",
         "Notion-Version": "2022-06-28"
     }
-    
+     
     today_date = date.today().isoformat()
-    
+     
     payload = {
         "parent": {"database_id": NOTION_DATABASE_ID},
         "properties": {
@@ -141,7 +177,7 @@ def add_to_notion(job):
             "Target Base Salary": {"rich_text": [{"text": {"content": "update this field"}}]}
         }
     }
-    
+     
     res = requests.post(notion_url, json=payload, headers=headers)
     if res.status_code == 200:
         print(f"Successfully added to Notion: {job['title']} ({job['company']})")
@@ -150,7 +186,7 @@ def add_to_notion(job):
 
 def main():
     seen_urls = get_existing_notion_urls()
-    
+     
     for query in SEARCH_QUERIES:
         items = search_duckduckgo_with_retry(query)
         for item in items:
@@ -158,8 +194,7 @@ def main():
             if link and link not in seen_urls:
                 seen_urls.add(link)
                 add_to_notion(item)
-        
-        # Pause for 3 seconds between queries to prevent triggering rate limits/timeouts
+         
         time.sleep(3)
 
 if __name__ == "__main__":
