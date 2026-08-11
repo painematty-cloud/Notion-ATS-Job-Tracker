@@ -1,7 +1,7 @@
 import os
 import re
 import time
-from datetime import datetime, timedelta, date
+from datetime import datetime, date
 import requests
 from ddgs import DDGS
 
@@ -44,30 +44,10 @@ def extract_company_name(title, url):
                 return parts[3].capitalize()
     return "Unknown Company"
 
-def is_within_last_week(text):
-    text_lower = text.lower()
-    if "months ago" in text_lower or "year ago" in text_lower:
-        return False
-    match = re.search(r'(\d+)\s+days?\s+ago', text_lower)
-    if match and int(match.group(1)) > 7:
-        return False
-    return True
-
 def title_passes_criteria(title, snippet):
-    combined_text = (title + " " + snippet).lower()
-    
-    # Exclude unwanted locations / regions explicitly
-    unwanted_locations = [
-        "united states", "usa", " u.s. ", "us only", "north america", 
-        "apac", "latam", "south america", "asia pacific", "australia", 
-        "canada", "california", "new york"
-    ]
-    if any(loc in combined_text for loc in unwanted_locations):
-        return False
-        
     title_lower = title.lower()
     
-    # Exclude unwanted seniority levels explicitly
+    # Exclude unwanted seniority levels explicitly from the title
     unwanted_levels = ["junior", "mid", "intermediate", "principal", "staff", "director", "head of", "vp"]
     if any(level in title_lower for level in unwanted_levels):
         return False
@@ -82,8 +62,14 @@ def title_passes_criteria(title, snippet):
     if not has_target_role:
         return False
         
-    # Exclude UI/UX starting or focused roles (e.g., "UI/UX Designer")
+    # Exclude UI/UX starting or focused roles
     if "ui/ux" in title_lower or title_lower.startswith("ui/ux"):
+        return False
+        
+    # Relaxed location criteria check (only filter out hard locks if explicitly stated in title)
+    combined_text = (title + " " + snippet).lower()
+    hard_unwanted_locations = ["us only", "united states only", "usa only"]
+    if any(loc in combined_text for loc in hard_unwanted_locations):
         return False
         
     return True
@@ -125,21 +111,21 @@ def get_existing_notion_urls():
     return existing_urls
 
 def search_duckduckgo_with_retry(query, retries=3):
-    """Searches with built-in retry logic and timeouts to prevent drops."""
+    """Searches with built-in retry logic and safe backend handling."""
     for attempt in range(retries):
         try:
             print(f"Searching for query (Attempt {attempt + 1}): {query}")
             job_results = []
             with DDGS() as ddgs:
-                results = list(ddgs.text(query, max_results=10, backend='html'))
+                # Removed explicit html backend which can drop results depending on package version
+                results = list(ddgs.text(query, max_results=10))
                 print(f"Found {len(results)} raw results for query.")
                 for r in results:
                     title = r.get("title", "Job Posting")
                     link = r.get("href", "")
                     snippet = r.get("body", "")
                     if link:
-                        combined_text = snippet + " " + title
-                        if is_within_last_week(combined_text) and title_passes_criteria(title, snippet):
+                        if title_passes_criteria(title, snippet):
                             job_results.append({
                                 "title": title,
                                 "link": link,
@@ -179,7 +165,8 @@ def add_to_notion(job):
     }
      
     res = requests.post(notion_url, json=payload, headers=headers)
-    if res.status_code == 200:
+    # Notion API returns 201 Created on successful page creation
+    if res.status_code in [200, 201]:
         print(f"Successfully added to Notion: {job['title']} ({job['company']})")
     else:
         print(f"FAILED to add to Notion ({res.status_code}): {res.text}")
