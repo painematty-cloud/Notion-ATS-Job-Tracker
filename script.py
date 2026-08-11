@@ -93,26 +93,21 @@ def extract_company_name(title, url):
 def title_passes_criteria(title, snippet):
     title_lower = title.lower()
     
-    # Exclude unwanted seniority levels explicitly from the title
     unwanted_levels = ["junior", "mid", "intermediate", "principal", "staff", "director", "head of", "vp"]
     if any(level in title_lower for level in unwanted_levels):
         return False
         
-    # Ensure target seniority exists (Senior or Lead)
     has_target_seniority = any(lvl in title_lower for lvl in ["senior", "lead"])
     if not has_target_seniority:
         return False
         
-    # Ensure target role exists (Product Designer or UX Designer)
     has_target_role = any(role in title_lower for role in ["product designer", "ux designer"])
     if not has_target_role:
         return False
         
-    # Exclude UI/UX starting or focused roles
     if "ui/ux" in title_lower or title_lower.startswith("ui/ux"):
         return False
         
-    # Relaxed location criteria check (only filter out hard locks if explicitly stated in title)
     combined_text = (title + " " + snippet).lower()
     hard_unwanted_locations = ["us only", "united states only", "usa only"]
     if any(loc in combined_text for loc in hard_unwanted_locations):
@@ -157,7 +152,6 @@ def get_existing_notion_urls():
     return existing_urls
 
 def search_duckduckgo_with_retry(query, retries=3):
-    """Searches with built-in retry logic and safe backend handling."""
     for attempt in range(retries):
         try:
             print(f"Searching for query (Attempt {attempt + 1}): {query}")
@@ -184,9 +178,9 @@ def search_duckduckgo_with_retry(query, retries=3):
         except Exception as e:
             print(f"Attempt {attempt + 1} failed due to error: {e}")
             if attempt < retries - 1:
-                time.sleep(5)
+                time.sleep(6) # Increased wait time between retries on timeout
             else:
-                print("All retries failed for this query.")
+                print("All retries failed for this query. Skipping gracefully.")
                 return []
 
 def add_to_notion(job):
@@ -231,7 +225,8 @@ def main():
             else:
                 print(f" [!] DUPLICATE SKIPPED (Already in Notion): {link}")
          
-        time.sleep(3)
+        # Increased sleep duration between queries to avoid rate-limiting / timeouts
+        time.sleep(5)
 
 if __name__ == "__main__":
     main()
