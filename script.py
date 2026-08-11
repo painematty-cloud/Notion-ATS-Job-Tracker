@@ -117,7 +117,6 @@ def search_duckduckgo_with_retry(query, retries=3):
             print(f"Searching for query (Attempt {attempt + 1}): {query}")
             job_results = []
             with DDGS() as ddgs:
-                # Removed explicit html backend which can drop results depending on package version
                 results = list(ddgs.text(query, max_results=10))
                 print(f"Found {len(results)} raw results for query.")
                 for r in results:
@@ -126,12 +125,15 @@ def search_duckduckgo_with_retry(query, retries=3):
                     snippet = r.get("body", "")
                     if link:
                         if title_passes_criteria(title, snippet):
+                            print(f" [+] PASSED FILTER: {title} | {link}")
                             job_results.append({
                                 "title": title,
                                 "link": link,
                                 "company": extract_company_name(title, link),
                                 "platform": detect_ats_platform(link)
                             })
+                        else:
+                            print(f" [x] FILTERED OUT: {title}")
             return job_results
         except Exception as e:
             print(f"Attempt {attempt + 1} failed due to error: {e}")
@@ -165,7 +167,6 @@ def add_to_notion(job):
     }
      
     res = requests.post(notion_url, json=payload, headers=headers)
-    # Notion API returns 201 Created on successful page creation
     if res.status_code in [200, 201]:
         print(f"Successfully added to Notion: {job['title']} ({job['company']})")
     else:
@@ -181,6 +182,8 @@ def main():
             if link and link not in seen_urls:
                 seen_urls.add(link)
                 add_to_notion(item)
+            else:
+                print(f" [!] DUPLICATE SKIPPED (Already in Notion): {link}")
          
         time.sleep(3)
 
