@@ -9,11 +9,34 @@ NOTION_TOKEN = os.getenv("NOTION_TOKEN")
 NOTION_DATABASE_ID = os.getenv("NOTION_DATABASE_ID")
 
 SEARCH_QUERIES = [
-    'site:jobs.ashbyhq.com ("Senior" OR "Lead") ("Product Designer" OR "UX Designer") ("Remote" OR "UK" OR "EU" OR "EMEA") -agency -consultancy -contract -freelance -junior -mid -"principal" -"staff" -"director" -"ui/ux" -"US" -"USA" -"United States" -"North America" -"APAC" -"LATAM"',
-    'site:boards.greenhouse.io ("Senior" OR "Lead") ("Product Designer" OR "UX Designer") ("Remote" OR "UK" OR "EU" OR "EMEA") -agency -consultancy -contract -freelance -junior -mid -"principal" -"staff" -"director" -"ui/ux" -"US" -"USA" -"United States" -"North America" -"APAC" -"LATAM"',
-    'site:apply.workable.com ("Senior" OR "Lead") ("Product Designer" OR "UX Designer") ("Remote" OR "UK" OR "EU" OR "EMEA") -agency -consultancy -contract -freelance -junior -mid -"principal" -"staff" -"director" -"ui/ux" -"US" -"USA" -"United States" -"North America" -"APAC" -"LATAM"',
-    'site:jobs.lever.co ("Senior" OR "Lead") ("Product Designer" OR "UX Designer") ("Remote" OR "UK" OR "EU" OR "EMEA") -agency -consultancy -contract -freelance -junior -mid -"principal" -"staff" -"director" -"ui/ux" -"US" -"USA" -"United States" -"North America" -"APAC" -"LATAM"',
-    'site:myworkdayjobs.com ("Senior" OR "Lead") ("Product Designer" OR "UX Designer") ("Remote" OR "UK" OR "EU" OR "EMEA") -agency -consultancy -contract -freelance -junior -mid -"principal" -"staff" -"director" -"ui/ux" -"US" -"USA" -"United States" -"North America" -"APAC" -"LATAM"'
+    # 1. Ashby
+    'site:jobs.ashbyhq.com ("Senior" OR "Lead") ("Product Designer" OR "UX Designer") ("Remote" OR "UK" OR "EU" OR "EMEA" OR "Europe" OR "Germany" OR "Netherlands") -agency -consultancy -contract -freelance -junior -mid -"principal" -"staff" -"director" -"ui/ux"',
+    # 2. Greenhouse
+    'site:boards.greenhouse.io ("Senior" OR "Lead") ("Product Designer" OR "UX Designer") ("Remote" OR "UK" OR "EU" OR "EMEA" OR "Europe" OR "Germany" OR "Netherlands") -agency -consultancy -contract -freelance -junior -mid -"principal" -"staff" -"director" -"ui/ux"',
+    # 3. Workable
+    'site:apply.workable.com ("Senior" OR "Lead") ("Product Designer" OR "UX Designer") ("Remote" OR "UK" OR "EU" OR "EMEA" OR "Europe" OR "Germany" OR "Netherlands") -agency -consultancy -contract -freelance -junior -mid -"principal" -"staff" -"director" -"ui/ux"',
+    # 4. Lever
+    'site:jobs.lever.co ("Senior" OR "Lead") ("Product Designer" OR "UX Designer") ("Remote" OR "UK" OR "EU" OR "EMEA" OR "Europe" OR "Germany" OR "Netherlands") -agency -consultancy -contract -freelance -junior -mid -"principal" -"staff" -"director" -"ui/ux"',
+    # 5. Teamtailor
+    'site:teamtailor.com ("Senior" OR "Lead") ("Product Designer" OR "UX Designer") ("Remote" OR "UK" OR "EU" OR "EMEA" OR "Europe" OR "Germany" OR "Netherlands") -agency -consultancy -contract -freelance -junior -mid -"principal" -"staff" -"director" -"ui/ux"',
+    # 6. Recruitee
+    'site:recruitee.com ("Senior" OR "Lead") ("Product Designer" OR "UX Designer") ("Remote" OR "UK" OR "EU" OR "EMEA" OR "Europe" OR "Germany" OR "Netherlands") -agency -consultancy -contract -freelance -junior -mid -"principal" -"staff" -"director" -"ui/ux"',
+    # 7. Personio
+    'site:personio.com/job ("Senior" OR "Lead") ("Product Designer" OR "UX Designer") ("Remote" OR "UK" OR "EU" OR "EMEA" OR "Europe" OR "Germany" OR "Netherlands") -agency -consultancy -contract -freelance -junior -mid -"principal" -"staff" -"director" -"ui/ux"',
+    # 8. Breezy HR
+    'site:breezy.hr ("Senior" OR "Lead") ("Product Designer" OR "UX Designer") ("Remote" OR "UK" OR "EU" OR "EMEA" OR "Europe" OR "Germany" OR "Netherlands") -agency -consultancy -contract -freelance -junior -mid -"principal" -"staff" -"director" -"ui/ux"',
+    # 9. Workday
+    'site:myworkdayjobs.com ("Senior" OR "Lead") ("Product Designer" OR "UX Designer") ("Remote" OR "UK" OR "EU" OR "EMEA" OR "Europe" OR "Germany" OR "Netherlands") -agency -consultancy -contract -freelance -junior -mid -"principal" -"staff" -"director" -"ui/ux"',
+    # 10. SmartRecruiters
+    'site:jobs.smartrecruiters.com ("Senior" OR "Lead") ("Product Designer" OR "UX Designer") ("Remote" OR "UK" OR "EU" OR "EMEA" OR "Europe" OR "Germany" OR "Netherlands") -agency -consultancy -contract -freelance -junior -mid -"principal" -"staff" -"director" -"ui/ux"',
+    # 11. BambooHR
+    'site:bamboohr.com/careers ("Senior" OR "Lead") ("Product Designer" OR "UX Designer") ("Remote" OR "UK" OR "EU" OR "EMEA" OR "Europe") -agency -consultancy -contract -freelance -junior -mid -"principal" -"staff" -"director" -"ui/ux"',
+    # 12. Homerun
+    'site:homerun.co ("Senior" OR "Lead") ("Product Designer" OR "UX Designer") ("Remote" OR "UK" OR "EU" OR "EMEA" OR "Europe") -agency -consultancy -contract -freelance -junior -mid -"principal" -"staff" -"director" -"ui/ux"',
+    # 13. Factorial
+    'site:factorialhr.com ("Senior" OR "Lead") ("Product Designer" OR "UX Designer") ("Remote" OR "UK" OR "EU" OR "EMEA" OR "Europe") -agency -consultancy -contract -freelance -junior -mid -"principal" -"staff" -"director" -"ui/ux"',
+    # 14. Pinpoint
+    'site:pinpoint.hr ("Senior" OR "Lead") ("Product Designer" OR "UX Designer") ("Remote" OR "UK" OR "EU" OR "EMEA" OR "Europe") -agency -consultancy -contract -freelance -junior -mid -"principal" -"staff" -"director" -"ui/ux"'
 ]
 
 def detect_ats_platform(url):
@@ -25,8 +48,26 @@ def detect_ats_platform(url):
         return "Workable"
     elif "lever.co" in url:
         return "Lever"
+    elif "teamtailor.com" in url:
+        return "Teamtailor"
+    elif "recruitee.com" in url:
+        return "Recruitee"
+    elif "personio.com" in url:
+        return "Personio"
+    elif "breezy.hr" in url:
+        return "Breezy"
     elif "myworkdayjobs.com" in url:
         return "Workday"
+    elif "smartrecruiters.com" in url:
+        return "SmartRecruiters"
+    elif "bamboohr.com" in url:
+        return "BambooHR"
+    elif "homerun.co" in url:
+        return "Homerun"
+    elif "factorialhr.com" in url:
+        return "Factorial"
+    elif "pinpoint.hr" in url:
+        return "Pinpoint"
     return "Other"
 
 def extract_company_name(title, url):
@@ -38,7 +79,12 @@ def extract_company_name(title, url):
     match = re.search(r'https?://(?:www\.)?([^/]+)', url)
     if match:
         domain = match.group(1)
-        if "greenhouse.io" in domain or "ashbyhq.com" in domain or "lever.co" in domain:
+        ats_domains = [
+            "greenhouse.io", "ashbyhq.com", "lever.co", "workable.com", 
+            "teamtailor.com", "recruitee.com", "personio.com", "breezy.hr", 
+            "smartrecruiters.com", "bamboohr.com", "homerun.co", "factorialhr.com", "pinpoint.hr"
+        ]
+        if any(ats in domain for ats in ats_domains):
             parts = url.split('/')
             if len(parts) > 3 and parts[3]:
                 return parts[3].capitalize()
