@@ -9,38 +9,46 @@ NOTION_TOKEN = os.getenv("NOTION_TOKEN")
 NOTION_DATABASE_ID = os.getenv("NOTION_DATABASE_ID")
 
 SEARCH_QUERIES = [
-    # 1. Ashby
-    'site:jobs.ashbyhq.com ("Senior" OR "Lead") ("Product Designer" OR "UX Designer") ("Remote" OR "UK" OR "EU" OR "EMEA" OR "Europe" OR "Germany" OR "Netherlands") -agency -consultancy -contract -freelance -junior -mid -"principal" -"staff" -"director" -"ui/ux"',
-    # 2. Greenhouse
-    'site:boards.greenhouse.io ("Senior" OR "Lead") ("Product Designer" OR "UX Designer") ("Remote" OR "UK" OR "EU" OR "EMEA" OR "Europe" OR "Germany" OR "Netherlands") -agency -consultancy -contract -freelance -junior -mid -"principal" -"staff" -"director" -"ui/ux"',
-    # 3. Workable
-    'site:apply.workable.com ("Senior" OR "Lead") ("Product Designer" OR "UX Designer") ("Remote" OR "UK" OR "EU" OR "EMEA" OR "Europe" OR "Germany" OR "Netherlands") -agency -consultancy -contract -freelance -junior -mid -"principal" -"staff" -"director" -"ui/ux"',
-    # 4. Lever
-    'site:jobs.lever.co ("Senior" OR "Lead") ("Product Designer" OR "UX Designer") ("Remote" OR "UK" OR "EU" OR "EMEA" OR "Europe" OR "Germany" OR "Netherlands") -agency -consultancy -contract -freelance -junior -mid -"principal" -"staff" -"director" -"ui/ux"',
-    # 5. Teamtailor
-    'site:teamtailor.com ("Senior" OR "Lead") ("Product Designer" OR "UX Designer") ("Remote" OR "UK" OR "EU" OR "EMEA" OR "Europe" OR "Germany" OR "Netherlands") -agency -consultancy -contract -freelance -junior -mid -"principal" -"staff" -"director" -"ui/ux"',
-    # 6. Recruitee
-    'site:recruitee.com ("Senior" OR "Lead") ("Product Designer" OR "UX Designer") ("Remote" OR "UK" OR "EU" OR "EMEA" OR "Europe" OR "Germany" OR "Netherlands") -agency -consultancy -contract -freelance -junior -mid -"principal" -"staff" -"director" -"ui/ux"',
-    # 7. Personio
-    'site:personio.com/job ("Senior" OR "Lead") ("Product Designer" OR "UX Designer") ("Remote" OR "UK" OR "EU" OR "EMEA" OR "Europe" OR "Germany" OR "Netherlands") -agency -consultancy -contract -freelance -junior -mid -"principal" -"staff" -"director" -"ui/ux"',
-    # 8. Breezy HR
-    'site:breezy.hr ("Senior" OR "Lead") ("Product Designer" OR "UX Designer") ("Remote" OR "UK" OR "EU" OR "EMEA" OR "Europe" OR "Germany" OR "Netherlands") -agency -consultancy -contract -freelance -junior -mid -"principal" -"staff" -"director" -"ui/ux"',
-    # 9. Workday
-    'site:myworkdayjobs.com ("Senior" OR "Lead") ("Product Designer" OR "UX Designer") ("Remote" OR "UK" OR "EU" OR "EMEA" OR "Europe" OR "Germany" OR "Netherlands") -agency -consultancy -contract -freelance -junior -mid -"principal" -"staff" -"director" -"ui/ux"',
-    # 10. SmartRecruiters
-    'site:jobs.smartrecruiters.com ("Senior" OR "Lead") ("Product Designer" OR "UX Designer") ("Remote" OR "UK" OR "EU" OR "EMEA" OR "Europe" OR "Germany" OR "Netherlands") -agency -consultancy -contract -freelance -junior -mid -"principal" -"staff" -"director" -"ui/ux"',
-    # 11. BambooHR
-    'site:bamboohr.com/careers ("Senior" OR "Lead") ("Product Designer" OR "UX Designer") ("Remote" OR "UK" OR "EU" OR "EMEA" OR "Europe") -agency -consultancy -contract -freelance -junior -mid -"principal" -"staff" -"director" -"ui/ux"',
-    # 12. Homerun
-    'site:homerun.co ("Senior" OR "Lead") ("Product Designer" OR "UX Designer") ("Remote" OR "UK" OR "EU" OR "EMEA" OR "Europe") -agency -consultancy -contract -freelance -junior -mid -"principal" -"staff" -"director" -"ui/ux"',
-    # 13. Factorial
-    'site:factorialhr.com ("Senior" OR "Lead") ("Product Designer" OR "UX Designer") ("Remote" OR "UK" OR "EU" OR "EMEA" OR "Europe") -agency -consultancy -contract -freelance -junior -mid -"principal" -"staff" -"director" -"ui/ux"',
-    # 14. Pinpoint
-    'site:pinpoint.hr ("Senior" OR "Lead") ("Product Designer" OR "UX Designer") ("Remote" OR "UK" OR "EU" OR "EMEA" OR "Europe") -agency -consultancy -contract -freelance -junior -mid -"principal" -"staff" -"director" -"ui/ux"'
+    # 1. Greenhouse (EU Hosted Instance) - Balanced across Spain and key EU tech hubs
+    'site:job-boards.eu.greenhouse.io ("Senior" OR "Lead") ("Product Designer" OR "UX Designer") ("Remote" OR "Spain" OR "España" OR "UK" OR "Germany" OR "Netherlands" OR "France" OR "Portugal" OR "Ireland") -agency -consultancy -contract -freelance -junior -mid -"principal" -"staff" -"director" -"ui/ux"',
+    # 2. Lever (EU Hosted Instance)
+    'site:jobs.eu.lever.co ("Senior" OR "Lead") ("Product Designer" OR "UX Designer") ("Remote" OR "Spain" OR "España" OR "UK" OR "Germany" OR "Netherlands" OR "France" OR "Portugal" OR "Ireland") -agency -consultancy -contract -freelance -junior -mid -"principal" -"staff" -"director" -"ui/ux"',
+    # 3. Ashby
+    'site:jobs.ashbyhq.com ("Senior" OR "Lead") ("Product Designer" OR "UX Designer") ("Remote" OR "Spain" OR "España" OR "UK" OR "Germany" OR "Netherlands" OR "France" OR "Portugal" OR "Ireland") -agency -consultancy -contract -freelance -junior -mid -"principal" -"staff" -"director" -"ui/ux"',
+    # 4. Greenhouse (Global Base)
+    'site:boards.greenhouse.io ("Senior" OR "Lead") ("Product Designer" OR "UX Designer") ("Remote" OR "Spain" OR "España" OR "UK" OR "Germany" OR "Netherlands" OR "France" OR "Portugal" OR "Ireland") -agency -consultancy -contract -freelance -junior -mid -"principal" -"staff" -"director" -"ui/ux"',
+    # 5. Workable
+    'site:apply.workable.com ("Senior" OR "Lead") ("Product Designer" OR "UX Designer") ("Remote" OR "Spain" OR "España" OR "UK" OR "Germany" OR "Netherlands" OR "France" OR "Portugal" OR "Ireland") -agency -consultancy -contract -freelance -junior -mid -"principal" -"staff" -"director" -"ui/ux"',
+    # 6. Lever (Global Base)
+    'site:jobs.lever.co ("Senior" OR "Lead") ("Product Designer" OR "UX Designer") ("Remote" OR "Spain" OR "España" OR "UK" OR "Germany" OR "Netherlands" OR "France" OR "Portugal" OR "Ireland") -agency -consultancy -contract -freelance -junior -mid -"principal" -"staff" -"director" -"ui/ux"',
+    # 7. Teamtailor
+    'site:teamtailor.com ("Senior" OR "Lead") ("Product Designer" OR "UX Designer") ("Remote" OR "Spain" OR "España" OR "UK" OR "Germany" OR "Netherlands" OR "France" OR "Portugal" OR "Ireland") -agency -consultancy -contract -freelance -junior -mid -"principal" -"staff" -"director" -"ui/ux"',
+    # 8. Recruitee
+    'site:recruitee.com ("Senior" OR "Lead") ("Product Designer" OR "UX Designer") ("Remote" OR "Spain" OR "España" OR "UK" OR "Germany" OR "Netherlands" OR "France" OR "Portugal" OR "Ireland") -agency -consultancy -contract -freelance -junior -mid -"principal" -"staff" -"director" -"ui/ux"',
+    # 9. Personio
+    'site:personio.com/job ("Senior" OR "Lead") ("Product Designer" OR "UX Designer") ("Remote" OR "Spain" OR "España" OR "UK" OR "Germany" OR "Netherlands" OR "France" OR "Portugal" OR "Ireland") -agency -consultancy -contract -freelance -junior -mid -"principal" -"staff" -"director" -"ui/ux"',
+    # 10. Breezy HR
+    'site:breezy.hr ("Senior" OR "Lead") ("Product Designer" OR "UX Designer") ("Remote" OR "Spain" OR "España" OR "UK" OR "Germany" OR "Netherlands" OR "France" OR "Portugal" OR "Ireland") -agency -consultancy -contract -freelance -junior -mid -"principal" -"staff" -"director" -"ui/ux"',
+    # 11. Workday
+    'site:myworkdayjobs.com ("Senior" OR "Lead") ("Product Designer" OR "UX Designer") ("Remote" OR "Spain" OR "España" OR "UK" OR "Germany" OR "Netherlands" OR "France" OR "Portugal" OR "Ireland") -agency -consultancy -contract -freelance -junior -mid -"principal" -"staff" -"director" -"ui/ux"',
+    # 12. SmartRecruiters
+    'site:jobs.smartrecruiters.com ("Senior" OR "Lead") ("Product Designer" OR "UX Designer") ("Remote" OR "Spain" OR "España" OR "UK" OR "Germany" OR "Netherlands" OR "France" OR "Portugal" OR "Ireland") -agency -consultancy -contract -freelance -junior -mid -"principal" -"staff" -"director" -"ui/ux"',
+    # 13. BambooHR
+    'site:bamboohr.com/careers ("Senior" OR "Lead") ("Product Designer" OR "UX Designer") ("Remote" OR "Spain" OR "España" OR "UK" OR "Germany" OR "Netherlands" OR "France") -agency -consultancy -contract -freelance -junior -mid -"principal" -"staff" -"director" -"ui/ux"',
+    # 14. Homerun
+    'site:homerun.co ("Senior" OR "Lead") ("Product Designer" OR "UX Designer") ("Remote" OR "Spain" OR "España" OR "UK" OR "Germany" OR "Netherlands" OR "France") -agency -consultancy -contract -freelance -junior -mid -"principal" -"staff" -"director" -"ui/ux"',
+    # 15. Factorial
+    'site:factorialhr.com ("Senior" OR "Lead") ("Product Designer" OR "UX Designer") ("Remote" OR "Spain" OR "España" OR "UK" OR "Germany" OR "Netherlands" OR "France") -agency -consultancy -contract -freelance -junior -mid -"principal" -"staff" -"director" -"ui/ux"',
+    # 16. Pinpoint
+    'site:pinpoint.hr ("Senior" OR "Lead") ("Product Designer" OR "UX Designer") ("Remote" OR "Spain" OR "España" OR "UK" OR "Germany" OR "Netherlands" OR "France") -agency -consultancy -contract -freelance -junior -mid -"principal" -"staff" -"director" -"ui/ux"'
 ]
 
 def detect_ats_platform(url):
-    if "ashbyhq.com" in url:
+    if "job-boards.eu.greenhouse.io" in url:
+        return "Greenhouse EU"
+    elif "jobs.eu.lever.co" in url:
+        return "Lever EU"
+    elif "ashbyhq.com" in url:
         return "Ashby"
     elif "greenhouse.io" in url:
         return "Greenhouse"
@@ -80,7 +88,7 @@ def extract_company_name(title, url):
     if match:
         domain = match.group(1)
         ats_domains = [
-            "greenhouse.io", "ashbyhq.com", "lever.co", "workable.com", 
+            "greenhouse.io", "eu.greenhouse.io", "ashbyhq.com", "lever.co", "eu.lever.co", "workable.com", 
             "teamtailor.com", "recruitee.com", "personio.com", "breezy.hr", 
             "smartrecruiters.com", "bamboohr.com", "homerun.co", "factorialhr.com", "pinpoint.hr"
         ]
@@ -109,7 +117,7 @@ def title_passes_criteria(title, snippet):
         return False
         
     combined_text = (title + " " + snippet).lower()
-    hard_unwanted_locations = ["us only", "united states only", "usa only"]
+    hard_unwanted_locations = ["us only", "united states only", "usa only", "us-only"]
     if any(loc in combined_text for loc in hard_unwanted_locations):
         return False
         
@@ -178,7 +186,7 @@ def search_duckduckgo_with_retry(query, retries=3):
         except Exception as e:
             print(f"Attempt {attempt + 1} failed due to error: {e}")
             if attempt < retries - 1:
-                time.sleep(6) # Increased wait time between retries on timeout
+                time.sleep(6)
             else:
                 print("All retries failed for this query. Skipping gracefully.")
                 return []
@@ -225,7 +233,6 @@ def main():
             else:
                 print(f" [!] DUPLICATE SKIPPED (Already in Notion): {link}")
          
-        # Increased sleep duration between queries to avoid rate-limiting / timeouts
         time.sleep(5)
 
 if __name__ == "__main__":
