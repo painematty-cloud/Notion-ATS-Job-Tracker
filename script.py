@@ -165,13 +165,17 @@ def search_duckduckgo_with_retry(query, retries=3):
             print(f"Searching for query (Attempt {attempt + 1}): {query}")
             job_results = []
             with DDGS() as ddgs:
-                # Increased max_results to 30 to bypass indexing throttling gaps
                 results = list(ddgs.text(query, max_results=30))
                 print(f"Found {len(results)} raw results for query.")
                 for r in results:
                     title = r.get("title", "Job Posting")
                     link = r.get("href", "")
                     snippet = r.get("body", "")
+                    
+                    # Guard against non-job results creeping in via generic keywords
+                    if any(bad in title.lower() for bad in ["wikipedia", "dictionary", "senior center", "apartments", "meaning"]):
+                        continue
+                        
                     if link:
                         if title_passes_criteria(title, snippet):
                             print(f" [+] PASSED FILTER: {title} | {link}")
@@ -185,11 +189,13 @@ def search_duckduckgo_with_retry(query, retries=3):
                             print(f" [x] FILTERED OUT: {title}")
             return job_results
         except Exception as e:
-            print(f"Attempt {attempt + 1} failed due to error: {e}")
+            print(f"Attempt {attempt + 1} failed due to error/timeout: {e}")
             if attempt < retries - 1:
-                time.sleep(6)
+                sleep_time = (attempt + 1) * 10
+                print(f"Waiting {sleep_time} seconds before retrying...")
+                time.sleep(sleep_time)
             else:
-                print("All retries failed for this query. Skipping gracefully.")
+                print("All retries failed for this query due to timeouts. Skipping gracefully.")
                 return []
 
 def add_to_notion(job):
@@ -238,3 +244,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
