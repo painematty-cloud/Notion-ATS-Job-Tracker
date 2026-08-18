@@ -87,15 +87,15 @@ def extract_company_name(title, url):
     match = re.search(r'https?://(?:www\.)?([^/]+)', url)
     if match:
         domain = match.group(1)
+        parts = url.split('/')
         ats_domains = [
             "greenhouse.io", "eu.greenhouse.io", "ashbyhq.com", "lever.co", "eu.lever.co", "workable.com", 
             "teamtailor.com", "recruitee.com", "personio.com", "breezy.hr", 
             "smartrecruiters.com", "bamboohr.com", "homerun.co", "factorialhr.com", "pinpoint.hr"
         ]
-        if any(ats in domain for ats in ats_domains):
-            parts = url.split('/')
-            if len(parts) > 3 and parts[3]:
-                return parts[3].capitalize()
+        if any(ats in domain for ats in ats_domains) and len(parts) > 3 and parts[3]:
+            return parts[3].replace("-", " ").title()
+            
     return "Unknown Company"
 
 def title_passes_criteria(title, snippet):
@@ -165,7 +165,8 @@ def search_duckduckgo_with_retry(query, retries=3):
             print(f"Searching for query (Attempt {attempt + 1}): {query}")
             job_results = []
             with DDGS() as ddgs:
-                results = list(ddgs.text(query, max_results=10))
+                # Increased max_results to 30 to bypass indexing throttling gaps
+                results = list(ddgs.text(query, max_results=30))
                 print(f"Found {len(results)} raw results for query.")
                 for r in results:
                     title = r.get("title", "Job Posting")
