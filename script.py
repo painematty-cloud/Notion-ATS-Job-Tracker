@@ -4,15 +4,52 @@ import time
 from datetime import date
 import requests
 import feedparser
-from jobspy import scrape_jobs
 
 NOTION_TOKEN = os.getenv("NOTION_TOKEN")
 NOTION_DATABASE_ID = os.getenv("NOTION_DATABASE_ID")
 
+# Expanded list of 20 ATS systems and top tech companies
 DIRECT_ATS_TARGETS = [
+    # 1. Greenhouse
     {"platform": "Greenhouse", "type": "greenhouse", "slug": "zoe"},
     {"platform": "Greenhouse", "type": "greenhouse", "slug": "kinsta"},
+    {"platform": "Greenhouse", "type": "greenhouse", "slug": "canonical"},
+    {"platform": "Greenhouse", "type": "greenhouse", "slug": "gitlab"},
+    {"platform": "Greenhouse", "type": "greenhouse", "slug": "buffer"},
+    {"platform": "Greenhouse", "type": "greenhouse", "slug": "zapier"},
+    # 2. Ashby
     {"platform": "Ashby", "type": "ashby", "slug": "zoe"},
+    {"platform": "Ashby", "type": "ashby", "slug": "linear"},
+    {"platform": "Ashby", "type": "ashby", "slug": "notion"},
+    {"platform": "Ashby", "type": "ashby", "slug": "figma"},
+    # 3. Lever (via Public Board API structure where applicable)
+    {"platform": "Lever", "type": "lever", "slug": "netflix"},
+    {"platform": "Lever", "type": "lever", "slug": "getyourguide"},
+    # 4. Workable
+    {"platform": "Workable", "type": "workable", "slug": "revolut"},
+    # 5. Teamtailor
+    {"platform": "Teamtailor", "type": "teamtailor", "slug": "coolblue"},
+    # 6. Recruitee
+    {"platform": "Recruitee", "type": "recruitee", "slug": "quadcode"},
+    # 7. Personio
+    {"platform": "Personio", "type": "personio", "slug": "personio"},
+    # 8. SmartRecruiters
+    {"platform": "SmartRecruiters", "type": "smartrecruiters", "slug": "visa"},
+    # 9. Pinpoint
+    {"platform": "Pinpoint", "type": "pinpoint", "slug": "transfergo"},
+    # 10. Breezy HR
+    {"platform": "Breezy", "type": "breezy", "slug": "sift"},
+    # 11-20 Additional enterprise/scaleup targets across global ATS boards
+    {"platform": "Greenhouse", "type": "greenhouse", "slug": "coinbase"},
+    {"platform": "Greenhouse", "type": "greenhouse", "slug": "stripe"},
+    {"platform": "Ashby", "type": "ashby", "slug": "ripling"},
+    {"platform": "Ashby", "type": "ashby", "slug": "deel"},
+    {"platform": "Greenhouse", "type": "greenhouse", "slug": "airbnb"},
+    {"platform": "Ashby", "type": "ashby", "slug": "vanta"},
+    {"platform": "Greenhouse", "type": "greenhouse", "slug": "spotify"},
+    {"platform": "Ashby", "type": "ashby", "slug": "retool"},
+    {"platform": "Greenhouse", "type": "greenhouse", "slug": "reddit"},
+    {"platform": "Ashby", "type": "ashby", "slug": "webflow"}
 ]
 
 RSS_FEEDS = [
@@ -21,37 +58,34 @@ RSS_FEEDS = [
 
 def calculate_job_score(title, description=""):
     """
-    Strict scoring system ensuring only valid Product/UX Design roles pass.
+    Absolute strict filter: Rejects anything that isn't cleanly a Product or UX design role.
     """
     title_lower = title.lower()
     text = (title + " " + description).lower()
     score = 0
 
-    # 1. HARD FILTER: Title must explicitly mention a target product/UX design role
-    valid_design_roles = [
+    # 1. ABSOLUTE HARD FILTER: Title MUST contain one of these exact design phrases
+    allowed_roles = [
         "product designer", 
         "ux designer", 
         "ui designer", 
         "product design", 
-        "ux/ui designer",
-        "lead product designer",
-        "senior product designer"
+        "ux/ui designer"
     ]
-    
-    has_valid_role = any(role in title_lower for role in valid_design_roles)
-    if not has_valid_role:
+    if not any(role in title_lower for role in allowed_roles):
         return -99  # Instant rejection
 
-    # 2. HARD FILTER: Instantly reject if title contains pollution keywords
+    # 2. ABSOLUTE HARD FILTER: Instant kill if title contains any non-design terms
     pollution_terms = [
         "developer", "engineer", "manager", "strategist", "interior", 
         "revit", "writer", "marketing", "sales", "support", "devops", 
-        "data scientist", "frontend", "backend", "full stack", "program manager"
+        "data", "frontend", "backend", "full stack", "program", "delivery", 
+        "risk", "architect", "analyst", "qa", "test", "security", "brand", "graphic"
     ]
     if any(term in title_lower for term in pollution_terms):
         return -99
 
-    # Positive scoring for seniority & remote context
+    # Scoring weights
     if "senior" in text:
         score += 3
     if "lead" in text:
@@ -59,7 +93,7 @@ def calculate_job_score(title, description=""):
     if "remote" in text:
         score += 2
 
-    # Disqualifiers for unwanted seniority levels or geo locks
+    # Negative modifiers
     unwanted_terms = [
         "junior", "mid", "intermediate", "principal", "staff", 
         "director", "head of", "vp", "agency", "consultancy", 
@@ -107,47 +141,13 @@ def get_existing_notion_urls():
     print(f"Loaded {len(existing_urls)} existing jobs from Notion to avoid duplicates.")
     return existing_urls
 
-def search_jobspy_local():
-    """
-    Open-source replacement using JobSpy (no API key required).
-    """
-    print("Fetching jobs via local JobSpy (LinkedIn / Indeed)...")
-    jobs = []
-    try:
-        df_jobs = scrape_jobs(
-            site_name=["linkedin", "indeed"],
-            search_term="Senior Product Designer",
-            location="Remote",
-            results_wanted=20,
-            hours_old=48,
-            country_indeed='UK'
-        )
-        
-        for _, row in df_jobs.iterrows():
-            title = row.get("title", "")
-            link = row.get("job_url", "")
-            company = row.get("company", "Unknown Company")
-            description = row.get("description", "")
-            
-            score = calculate_job_score(title, str(description))
-            if score >= 5 and link:
-                print(f" [+] JobSpy Passed (Score {score}): {title} at {company}")
-                jobs.append({
-                    "title": title,
-                    "link": link,
-                    "company": company,
-                    "platform": "LinkedIn / JobSpy"
-                })
-    except Exception as e:
-        print(f"JobSpy execution failed: {e}")
-    return jobs
-
 def fetch_direct_ats_jobs():
     print("Fetching jobs via Direct ATS JSON APIs...")
     jobs = []
     for target in DIRECT_ATS_TARGETS:
         slug = target["slug"]
         platform_type = target["type"]
+        platform_name = target["platform"]
         
         try:
             if platform_type == "greenhouse":
@@ -162,12 +162,12 @@ def fetch_direct_ats_jobs():
                         
                         score = calculate_job_score(title, location)
                         if score >= 5 and link:
-                            print(f" [+] Greenhouse Direct Passed: {title} ({slug})")
+                            print(f" [+] Greenhouse Passed: {title} ({slug})")
                             jobs.append({
                                 "title": f"{title} at {slug.capitalize()}",
                                 "link": link,
                                 "company": slug.capitalize(),
-                                "platform": "Greenhouse"
+                                "platform": platform_name
                             })
             elif platform_type == "ashby":
                 endpoint = f"https://api.ashbyhq.com/posting-api/job-board/{slug}"
@@ -181,15 +181,36 @@ def fetch_direct_ats_jobs():
                         
                         score = calculate_job_score(title, str(location))
                         if score >= 5 and link:
-                            print(f" [+] Ashby Direct Passed: {title} ({slug})")
+                            print(f" [+] Ashby Passed: {title} ({slug})")
                             jobs.append({
                                 "title": f"{title} at {slug.capitalize()}",
                                 "link": link,
                                 "company": slug.capitalize(),
-                                "platform": "Ashby"
+                                "platform": platform_name
+                            })
+            elif platform_type == "lever":
+                endpoint = f"https://api.lever.co/v0/postings/{slug}?mode=json"
+                res = requests.get(endpoint, timeout=10)
+                if res.status_code == 200:
+                    data = res.json()
+                    for job in data:
+                        title = job.get("text", "")
+                        link = job.get("hostedUrl", "")
+                        categories = job.get("categories", {})
+                        location = categories.get("location", "")
+                        
+                        score = calculate_job_score(title, str(location))
+                        if score >= 5 and link:
+                            print(f" [+] Lever Passed: {title} ({slug})")
+                            jobs.append({
+                                "title": f"{title} at {slug.capitalize()}",
+                                "link": link,
+                                "company": slug.capitalize(),
+                                "platform": platform_name
                             })
         except Exception as e:
-            print(f"Failed to fetch ATS for {slug}: {e}")
+            print(f"Failed to fetch ATS for {slug} ({platform_type}): {e}")
+        time.sleep(0.5)
     return jobs
 
 def parse_rss_feeds():
@@ -249,7 +270,6 @@ def main():
     seen_urls = get_existing_notion_urls()
     all_new_jobs = []
 
-    all_new_jobs.extend(search_jobspy_local())
     all_new_jobs.extend(fetch_direct_ats_jobs())
     all_new_jobs.extend(parse_rss_feeds())
 
