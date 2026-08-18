@@ -1,127 +1,58 @@
 import os
 import re
 import time
-from datetime import datetime, date
+from datetime import date
 import requests
-from ddgs import DDGS
+import feedparser
 
 NOTION_TOKEN = os.getenv("NOTION_TOKEN")
 NOTION_DATABASE_ID = os.getenv("NOTION_DATABASE_ID")
+RAPIDAPI_KEY = os.getenv("RAPIDAPI_KEY")
 
-SEARCH_QUERIES = [
-    # 1. Greenhouse (EU Hosted Instance) - Balanced across Spain and key EU tech hubs
-    'site:job-boards.eu.greenhouse.io ("Senior" OR "Lead") ("Product Designer" OR "UX Designer") ("Remote" OR "Spain" OR "España" OR "UK" OR "Germany" OR "Netherlands" OR "France" OR "Portugal" OR "Ireland") -agency -consultancy -contract -freelance -junior -mid -"principal" -"staff" -"director" -"ui/ux"',
-    # 2. Lever (EU Hosted Instance)
-    'site:jobs.eu.lever.co ("Senior" OR "Lead") ("Product Designer" OR "UX Designer") ("Remote" OR "Spain" OR "España" OR "UK" OR "Germany" OR "Netherlands" OR "France" OR "Portugal" OR "Ireland") -agency -consultancy -contract -freelance -junior -mid -"principal" -"staff" -"director" -"ui/ux"',
-    # 3. Ashby
-    'site:jobs.ashbyhq.com ("Senior" OR "Lead") ("Product Designer" OR "UX Designer") ("Remote" OR "Spain" OR "España" OR "UK" OR "Germany" OR "Netherlands" OR "France" OR "Portugal" OR "Ireland") -agency -consultancy -contract -freelance -junior -mid -"principal" -"staff" -"director" -"ui/ux"',
-    # 4. Greenhouse (Global Base)
-    'site:boards.greenhouse.io ("Senior" OR "Lead") ("Product Designer" OR "UX Designer") ("Remote" OR "Spain" OR "España" OR "UK" OR "Germany" OR "Netherlands" OR "France" OR "Portugal" OR "Ireland") -agency -consultancy -contract -freelance -junior -mid -"principal" -"staff" -"director" -"ui/ux"',
-    # 5. Workable
-    'site:apply.workable.com ("Senior" OR "Lead") ("Product Designer" OR "UX Designer") ("Remote" OR "Spain" OR "España" OR "UK" OR "Germany" OR "Netherlands" OR "France" OR "Portugal" OR "Ireland") -agency -consultancy -contract -freelance -junior -mid -"principal" -"staff" -"director" -"ui/ux"',
-    # 6. Lever (Global Base)
-    'site:jobs.lever.co ("Senior" OR "Lead") ("Product Designer" OR "UX Designer") ("Remote" OR "Spain" OR "España" OR "UK" OR "Germany" OR "Netherlands" OR "France" OR "Portugal" OR "Ireland") -agency -consultancy -contract -freelance -junior -mid -"principal" -"staff" -"director" -"ui/ux"',
-    # 7. Teamtailor
-    'site:teamtailor.com ("Senior" OR "Lead") ("Product Designer" OR "UX Designer") ("Remote" OR "Spain" OR "España" OR "UK" OR "Germany" OR "Netherlands" OR "France" OR "Portugal" OR "Ireland") -agency -consultancy -contract -freelance -junior -mid -"principal" -"staff" -"director" -"ui/ux"',
-    # 8. Recruitee
-    'site:recruitee.com ("Senior" OR "Lead") ("Product Designer" OR "UX Designer") ("Remote" OR "Spain" OR "España" OR "UK" OR "Germany" OR "Netherlands" OR "France" OR "Portugal" OR "Ireland") -agency -consultancy -contract -freelance -junior -mid -"principal" -"staff" -"director" -"ui/ux"',
-    # 9. Personio
-    'site:personio.com/job ("Senior" OR "Lead") ("Product Designer" OR "UX Designer") ("Remote" OR "Spain" OR "España" OR "UK" OR "Germany" OR "Netherlands" OR "France" OR "Portugal" OR "Ireland") -agency -consultancy -contract -freelance -junior -mid -"principal" -"staff" -"director" -"ui/ux"',
-    # 10. Breezy HR
-    'site:breezy.hr ("Senior" OR "Lead") ("Product Designer" OR "UX Designer") ("Remote" OR "Spain" OR "España" OR "UK" OR "Germany" OR "Netherlands" OR "France" OR "Portugal" OR "Ireland") -agency -consultancy -contract -freelance -junior -mid -"principal" -"staff" -"director" -"ui/ux"',
-    # 11. Workday
-    'site:myworkdayjobs.com ("Senior" OR "Lead") ("Product Designer" OR "UX Designer") ("Remote" OR "Spain" OR "España" OR "UK" OR "Germany" OR "Netherlands" OR "France" OR "Portugal" OR "Ireland") -agency -consultancy -contract -freelance -junior -mid -"principal" -"staff" -"director" -"ui/ux"',
-    # 12. SmartRecruiters
-    'site:jobs.smartrecruiters.com ("Senior" OR "Lead") ("Product Designer" OR "UX Designer") ("Remote" OR "Spain" OR "España" OR "UK" OR "Germany" OR "Netherlands" OR "France" OR "Portugal" OR "Ireland") -agency -consultancy -contract -freelance -junior -mid -"principal" -"staff" -"director" -"ui/ux"',
-    # 13. BambooHR
-    'site:bamboohr.com/careers ("Senior" OR "Lead") ("Product Designer" OR "UX Designer") ("Remote" OR "Spain" OR "España" OR "UK" OR "Germany" OR "Netherlands" OR "France") -agency -consultancy -contract -freelance -junior -mid -"principal" -"staff" -"director" -"ui/ux"',
-    # 14. Homerun
-    'site:homerun.co ("Senior" OR "Lead") ("Product Designer" OR "UX Designer") ("Remote" OR "Spain" OR "España" OR "UK" OR "Germany" OR "Netherlands" OR "France") -agency -consultancy -contract -freelance -junior -mid -"principal" -"staff" -"director" -"ui/ux"',
-    # 15. Factorial
-    'site:factorialhr.com ("Senior" OR "Lead") ("Product Designer" OR "UX Designer") ("Remote" OR "Spain" OR "España" OR "UK" OR "Germany" OR "Netherlands" OR "France") -agency -consultancy -contract -freelance -junior -mid -"principal" -"staff" -"director" -"ui/ux"',
-    # 16. Pinpoint
-    'site:pinpoint.hr ("Senior" OR "Lead") ("Product Designer" OR "UX Designer") ("Remote" OR "Spain" OR "España" OR "UK" OR "Germany" OR "Netherlands" OR "France") -agency -consultancy -contract -freelance -junior -mid -"principal" -"staff" -"director" -"ui/ux"'
+# Target company slugs for direct JSON ATS queries (Greenhouse & Ashby)
+DIRECT_ATS_TARGETS = [
+    {"platform": "Greenhouse", "type": "greenhouse", "slug": "zoe"},
+    {"platform": "Greenhouse", "type": "greenhouse", "slug": "kinsta"},
+    {"platform": "Ashby", "type": "ashby", "slug": "zoe"},
 ]
 
-def detect_ats_platform(url):
-    if "job-boards.eu.greenhouse.io" in url:
-        return "Greenhouse EU"
-    elif "jobs.eu.lever.co" in url:
-        return "Lever EU"
-    elif "ashbyhq.com" in url:
-        return "Ashby"
-    elif "greenhouse.io" in url:
-        return "Greenhouse"
-    elif "workable.com" in url:
-        return "Workable"
-    elif "lever.co" in url:
-        return "Lever"
-    elif "teamtailor.com" in url:
-        return "Teamtailor"
-    elif "recruitee.com" in url:
-        return "Recruitee"
-    elif "personio.com" in url:
-        return "Personio"
-    elif "breezy.hr" in url:
-        return "Breezy"
-    elif "myworkdayjobs.com" in url:
-        return "Workday"
-    elif "smartrecruiters.com" in url:
-        return "SmartRecruiters"
-    elif "bamboohr.com" in url:
-        return "BambooHR"
-    elif "homerun.co" in url:
-        return "Homerun"
-    elif "factorialhr.com" in url:
-        return "Factorial"
-    elif "pinpoint.hr" in url:
-        return "Pinpoint"
-    return "Other"
+# Curated RSS feeds for remote design jobs
+RSS_FEEDS = [
+    "https://weworkremotely.com/categories/remote-design-jobs.rss",
+]
 
-def extract_company_name(title, url):
-    if " at " in title:
-        parts = title.split(" at ")
-        if len(parts) > 1:
-            return parts[-1].split(" - ")[0].strip()
-     
-    match = re.search(r'https?://(?:www\.)?([^/]+)', url)
-    if match:
-        domain = match.group(1)
-        parts = url.split('/')
-        ats_domains = [
-            "greenhouse.io", "eu.greenhouse.io", "ashbyhq.com", "lever.co", "eu.lever.co", "workable.com", 
-            "teamtailor.com", "recruitee.com", "personio.com", "breezy.hr", 
-            "smartrecruiters.com", "bamboohr.com", "homerun.co", "factorialhr.com", "pinpoint.hr"
-        ]
-        if any(ats in domain for ats in ats_domains) and len(parts) > 3 and parts[3]:
-            return parts[3].replace("-", " ").title()
-            
-    return "Unknown Company"
+def calculate_job_score(title, description=""):
+    """
+    Weighted scoring system to determine job quality and relevance.
+    Positive weights for target roles/seniority, heavy penalties for unwanted terms.
+    """
+    text = (title + " " + description).lower()
+    score = 0
 
-def title_passes_criteria(title, snippet):
-    title_lower = title.lower()
+    # Positive scoring
+    if "senior" in text:
+        score += 3
+    if "lead" in text:
+        score += 4
+    if "product designer" in text:
+        score += 4
+    if "ux designer" in text:
+        score += 3
+    if "remote" in text:
+        score += 2
+
+    # Negative scoring / hard disqualifiers
+    unwanted_terms = [
+        "junior", "mid", "intermediate", "principal", "staff", 
+        "director", "head of", "vp", "agency", "consultancy", 
+        "contract", "freelance", "ui/ux", "us only", "united states only"
+    ]
     
-    unwanted_levels = ["junior", "mid", "intermediate", "principal", "staff", "director", "head of", "vp"]
-    if any(level in title_lower for level in unwanted_levels):
-        return False
-        
-    has_target_seniority = any(lvl in title_lower for lvl in ["senior", "lead"])
-    if not has_target_seniority:
-        return False
-        
-    has_target_role = any(role in title_lower for role in ["product designer", "ux designer"])
-    if not has_target_role:
-        return False
-        
-    if "ui/ux" in title_lower or title_lower.startswith("ui/ux"):
-        return False
-        
-    combined_text = (title + " " + snippet).lower()
-    hard_unwanted_locations = ["us only", "united states only", "usa only", "us-only"]
-    if any(loc in combined_text for loc in hard_unwanted_locations):
-        return False
-        
-    return True
+    for term in unwanted_terms:
+        if term in text:
+            score -= 10
+
+    return score
 
 def get_existing_notion_urls():
     notion_url = f"https://api.notion.com/v1/databases/{NOTION_DATABASE_ID}/query"
@@ -159,44 +90,133 @@ def get_existing_notion_urls():
     print(f"Loaded {len(existing_urls)} existing jobs from Notion to avoid duplicates.")
     return existing_urls
 
-def search_duckduckgo_with_retry(query, retries=3):
-    for attempt in range(retries):
+def search_jsearch_api():
+    """
+    Suggestion 1: Integrate JSearch API (RapidAPI) for LinkedIn & Global Boards
+    """
+    if not RAPIDAPI_KEY:
+        print("RAPIDAPI_KEY not set. Skipping JSearch API search.")
+        return []
+
+    print("Fetching jobs via JSearch API (LinkedIn / Indeed)...")
+    url = "https://jsearch.p.rapidapi.com/search"
+    querystring = {
+        "query": "Senior Product Designer OR UX Designer Remote Spain OR UK OR Germany OR Netherlands OR France OR Portugal OR Ireland",
+        "page": "1",
+        "num_pages": "1",
+        "date_posted": "week"
+    }
+    headers = {
+        "X-RapidAPI-Key": RAPIDAPI_KEY,
+        "X-RapidAPI-Host": "jsearch.p.rapidapi.com"
+    }
+
+    try:
+        response = requests.get(url, headers=headers, params=querystring, timeout=15)
+        if response.status_code == 200:
+            data = response.json()
+            jobs = []
+            for item in data.get("data", []):
+                title = item.get("job_title", "")
+                link = item.get("job_apply_link", item.get("job_google_link", ""))
+                company = item.get("employer_name", "Unknown Company")
+                description = item.get("job_description", "")
+                
+                score = calculate_job_score(title, description)
+                if score >= 6 and link:
+                    print(f" [+] JSearch Passed (Score {score}): {title} at {company}")
+                    jobs.append({
+                        "title": title,
+                        "link": link,
+                        "company": company,
+                        "platform": "LinkedIn / JSearch"
+                    })
+            return jobs
+        else:
+            print(f"JSearch API error: {response.status_code} - {response.text}")
+    except Exception as e:
+        print(f"JSearch API request failed: {e}")
+    return []
+
+def fetch_direct_ats_jobs():
+    """
+    Suggestion 2: Query Direct ATS JSON Endpoints (Greenhouse & Ashby)
+    """
+    print("Fetching jobs via Direct ATS JSON APIs...")
+    jobs = []
+    for target in DIRECT_ATS_TARGETS:
+        slug = target["slug"]
+        platform_type = target["type"]
+        
         try:
-            print(f"Searching for query (Attempt {attempt + 1}): {query}")
-            job_results = []
-            with DDGS() as ddgs:
-                results = list(ddgs.text(query, max_results=30))
-                print(f"Found {len(results)} raw results for query.")
-                for r in results:
-                    title = r.get("title", "Job Posting")
-                    link = r.get("href", "")
-                    snippet = r.get("body", "")
-                    
-                    # Guard against non-job results creeping in via generic keywords
-                    if any(bad in title.lower() for bad in ["wikipedia", "dictionary", "senior center", "apartments", "meaning"]):
-                        continue
+            if platform_type == "greenhouse":
+                endpoint = f"https://boards-api.greenhouse.io/v1/boards/{slug}/jobs"
+                res = requests.get(endpoint, timeout=10)
+                if res.status_code == 200:
+                    data = res.json()
+                    for job in data.get("jobs", []):
+                        title = job.get("title", "")
+                        link = job.get("absolute_url", "")
+                        location = job.get("location", {}).get("name", "")
                         
-                    if link:
-                        if title_passes_criteria(title, snippet):
-                            print(f" [+] PASSED FILTER: {title} | {link}")
-                            job_results.append({
-                                "title": title,
+                        score = calculate_job_score(title, location)
+                        if score >= 6 and link:
+                            print(f" [+] Greenhouse Direct Passed: {title} ({slug})")
+                            jobs.append({
+                                "title": f"{title} at {slug.capitalize()}",
                                 "link": link,
-                                "company": extract_company_name(title, link),
-                                "platform": detect_ats_platform(link)
+                                "company": slug.capitalize(),
+                                "platform": "Greenhouse"
                             })
-                        else:
-                            print(f" [x] FILTERED OUT: {title}")
-            return job_results
+            elif platform_type == "ashby":
+                endpoint = f"https://api.ashbyhq.com/posting-api/job-board/{slug}"
+                res = requests.get(endpoint, timeout=10)
+                if res.status_code == 200:
+                    data = res.json()
+                    for job in data.get("jobs", []):
+                        title = job.get("title", "")
+                        link = job.get("jobUrl", "")
+                        location = job.get("location", "")
+                        
+                        score = calculate_job_score(title, str(location))
+                        if score >= 6 and link:
+                            print(f" [+] Ashby Direct Passed: {title} ({slug})")
+                            jobs.append({
+                                "title": f"{title} at {slug.capitalize()}",
+                                "link": link,
+                                "company": slug.capitalize(),
+                                "platform": "Ashby"
+                            })
         except Exception as e:
-            print(f"Attempt {attempt + 1} failed due to error/timeout: {e}")
-            if attempt < retries - 1:
-                sleep_time = (attempt + 1) * 10
-                print(f"Waiting {sleep_time} seconds before retrying...")
-                time.sleep(sleep_time)
-            else:
-                print("All retries failed for this query due to timeouts. Skipping gracefully.")
-                return []
+            print(f"Failed to fetch ATS for {slug}: {e}")
+    return jobs
+
+def parse_rss_feeds():
+    """
+    Suggestion 4: Direct RSS Feed Parsing for Curated Design Boards
+    """
+    print("Parsing curated design RSS feeds...")
+    jobs = []
+    for feed_url in RSS_FEEDS:
+        try:
+            feed = feedparser.parse(feed_url)
+            for entry in feed.entries:
+                title = entry.get("title", "")
+                link = entry.get("link", "")
+                summary = entry.get("summary", "")
+                
+                score = calculate_job_score(title, summary)
+                if score >= 6 and link:
+                    print(f" [+] RSS Feed Passed (Score {score}): {title}")
+                    jobs.append({
+                        "title": title,
+                        "link": link,
+                        "company": "External RSS Board",
+                        "platform": "Other"
+                    })
+        except Exception as e:
+            print(f"Failed to parse RSS feed {feed_url}: {e}")
+    return jobs
 
 def add_to_notion(job):
     notion_url = "https://api.notion.com/v1/pages"
@@ -229,19 +249,26 @@ def add_to_notion(job):
 
 def main():
     seen_urls = get_existing_notion_urls()
-     
-    for query in SEARCH_QUERIES:
-        items = search_duckduckgo_with_retry(query)
-        for item in items:
-            link = item.get("link", "")
-            if link and link not in seen_urls:
-                seen_urls.add(link)
-                add_to_notion(item)
-            else:
-                print(f" [!] DUPLICATE SKIPPED (Already in Notion): {link}")
-         
-        time.sleep(5)
+    all_new_jobs = []
+
+    # 1. Fetch via JSearch API (LinkedIn / Job Aggregators)
+    all_new_jobs.extend(search_jsearch_api())
+
+    # 2. Fetch directly from known ATS JSON endpoints
+    all_new_jobs.extend(fetch_direct_ats_jobs())
+
+    # 3. Parse curated design RSS feeds
+    all_new_jobs.extend(parse_rss_feeds())
+
+    # Deduplicate and push to Notion using weighted score vetting
+    for job in all_new_jobs:
+        link = job.get("link", "")
+        if link and link not in seen_urls:
+            seen_urls.add(link)
+            add_to_notion(job)
+            time.sleep(1)
+        else:
+            print(f" [!] DUPLICATE SKIPPED: {link}")
 
 if __name__ == "__main__":
     main()
-
