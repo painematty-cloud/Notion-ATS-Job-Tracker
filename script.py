@@ -1,5 +1,4 @@
 import os
-import re
 import time
 from datetime import date
 import requests
@@ -8,63 +7,146 @@ import feedparser
 NOTION_TOKEN = os.getenv("NOTION_TOKEN")
 NOTION_DATABASE_ID = os.getenv("NOTION_DATABASE_ID")
 
-# Expanded list of 20 ATS systems and top tech companies
-DIRECT_ATS_TARGETS = [
-    # 1. Greenhouse
-    {"platform": "Greenhouse", "type": "greenhouse", "slug": "zoe"},
-    {"platform": "Greenhouse", "type": "greenhouse", "slug": "kinsta"},
-    {"platform": "Greenhouse", "type": "greenhouse", "slug": "canonical"},
-    {"platform": "Greenhouse", "type": "greenhouse", "slug": "gitlab"},
-    {"platform": "Greenhouse", "type": "greenhouse", "slug": "buffer"},
-    {"platform": "Greenhouse", "type": "greenhouse", "slug": "zapier"},
-    # 2. Ashby
-    {"platform": "Ashby", "type": "ashby", "slug": "zoe"},
-    {"platform": "Ashby", "type": "ashby", "slug": "linear"},
-    {"platform": "Ashby", "type": "ashby", "slug": "notion"},
-    {"platform": "Ashby", "type": "ashby", "slug": "figma"},
-    # 3. Lever (via Public Board API structure where applicable)
-    {"platform": "Lever", "type": "lever", "slug": "netflix"},
-    {"platform": "Lever", "type": "lever", "slug": "getyourguide"},
-    # 4. Workable
-    {"platform": "Workable", "type": "workable", "slug": "revolut"},
-    # 5. Teamtailor
-    {"platform": "Teamtailor", "type": "teamtailor", "slug": "coolblue"},
-    # 6. Recruitee
-    {"platform": "Recruitee", "type": "recruitee", "slug": "quadcode"},
-    # 7. Personio
-    {"platform": "Personio", "type": "personio", "slug": "personio"},
-    # 8. SmartRecruiters
-    {"platform": "SmartRecruiters", "type": "smartrecruiters", "slug": "visa"},
-    # 9. Pinpoint
-    {"platform": "Pinpoint", "type": "pinpoint", "slug": "transfergo"},
-    # 10. Breezy HR
-    {"platform": "Breezy", "type": "breezy", "slug": "sift"},
-    # 11-20 Additional enterprise/scaleup targets across global ATS boards
-    {"platform": "Greenhouse", "type": "greenhouse", "slug": "coinbase"},
-    {"platform": "Greenhouse", "type": "greenhouse", "slug": "stripe"},
-    {"platform": "Ashby", "type": "ashby", "slug": "ripling"},
-    {"platform": "Ashby", "type": "ashby", "slug": "deel"},
-    {"platform": "Greenhouse", "type": "greenhouse", "slug": "airbnb"},
-    {"platform": "Ashby", "type": "ashby", "slug": "vanta"},
-    {"platform": "Greenhouse", "type": "greenhouse", "slug": "spotify"},
-    {"platform": "Ashby", "type": "ashby", "slug": "retool"},
-    {"platform": "Greenhouse", "type": "greenhouse", "slug": "reddit"},
-    {"platform": "Ashby", "type": "ashby", "slug": "webflow"}
-]
-
-RSS_FEEDS = [
-    "https://weworkremotely.com/categories/remote-design-jobs.rss",
-]
+# 100 Unique External RSS Feeds grouped appropriately by job board platform
+RSS_FEEDS_BY_PLATFORM = {
+    "We Work Remotely": [
+        "https://weworkremotely.com/categories/remote-design-jobs.rss",
+        "https://weworkremotely.com/categories/remote-product-jobs.rss",
+        "https://weworkremotely.com/remote-jobs.rss",
+        "https://weworkremotely.com/categories/all-other-remote-jobs.rss",
+        "https://weworkremotely.com/categories/remote-management-and-finance-jobs.rss",
+        "https://weworkremotely.com/categories/remote-full-stack-programming-jobs.rss",
+        "https://weworkremotely.com/categories/remote-back-end-programming-jobs.rss",
+        "https://weworkremotely.com/categories/remote-front-end-programming-jobs.rss",
+        "https://weworkremotely.com/categories/remote-programming-jobs.rss",
+        "https://weworkremotely.com/categories/remote-sales-and-marketing-jobs.rss",
+        "https://weworkremotely.com/categories/remote-devops-sysadmin-jobs.rss"
+    ],
+    "Remotive": [
+        "https://remotive.com/remote-jobs/design/feed",
+        "https://remotive.com/remote-jobs/product/feed",
+        "https://remotive.com/remote-jobs/feed",
+        "https://remotive.com/remote-jobs/software-dev/feed",
+        "https://remotive.com/remote-jobs/customer-support/feed",
+        "https://remotive.com/remote-jobs/marketing/feed",
+        "https://remotive.com/remote-jobs/sales/feed",
+        "https://remotive.com/remote-jobs/data/feed",
+        "https://remotive.com/remote-jobs/hr/feed",
+        "https://remotive.com/remote-jobs/qa/feed",
+        "https://remotive.com/remote-jobs/writing/feed",
+        "https://remotive.com/remote-jobs/finance-legal/feed",
+        "https://remotive.com/remote-jobs/project-management/feed"
+    ],
+    "Jobicy": [
+        "https://jobicy.com/feed/?job_categories=design",
+        "https://jobicy.com/feed/?job_categories=product",
+        "https://jobicy.com/feed/?job_categories=managers",
+        "https://jobicy.com/feed/",
+        "https://jobicy.com/feed/?job_categories=developers",
+        "https://jobicy.com/feed/?job_categories=marketing",
+        "https://jobicy.com/feed/?job_categories=support",
+        "https://jobicy.com/feed/?job_categories=copywriting",
+        "https://jobicy.com/feed/?job_categories=sme",
+        "https://jobicy.com/feed/?job_categories=hr",
+        "https://jobicy.com/feed/?job_categories=finance",
+        "https://jobicy.com/feed/?job_categories=admin",
+        "https://jobicy.com/feed/?job_categories=seo",
+        "https://jobicy.com/feed/?job_categories=sales"
+    ],
+    "Real Work From Anywhere": [
+        "https://www.realworkfromanywhere.com/remote-design-jobs/rss.xml",
+        "https://www.realworkfromanywhere.com/remote-product-jobs/rss.xml",
+        "https://www.realworkfromanywhere.com/rss.xml",
+        "https://www.realworkfromanywhere.com/remote-management-and-finance-jobs/rss.xml",
+        "https://www.realworkfromanywhere.com/remote-software-developer-jobs/rss.xml",
+        "https://www.realworkfromanywhere.com/remote-fullstack-jobs/rss.xml",
+        "https://www.realworkfromanywhere.com/remote-frontend-jobs/rss.xml",
+        "https://www.realworkfromanywhere.com/remote-backend-jobs/rss.xml",
+        "https://www.realworkfromanywhere.com/remote-devops-and-sysadmin-jobs/rss.xml",
+        "https://www.realworkfromanywhere.com/remote-customer-support-jobs/rss.xml",
+        "https://www.realworkfromanywhere.com/remote-sales-and-marketing-jobs/rss.xml"
+    ],
+    "Working Nomads": [
+        "https://www.workingnomads.com/jobs/rss/design",
+        "https://www.workingnomads.com/jobs/rss/management",
+        "https://www.workingnomads.com/jobs/rss/all",
+        "https://www.workingnomads.com/jobs/rss/development",
+        "https://www.workingnomads.com/jobs/rss/sysadmin",
+        "https://www.workingnomads.com/jobs/rss/consulting",
+        "https://www.workingnomads.com/jobs/rss/sales",
+        "https://www.workingnomads.com/jobs/rss/marketing",
+        "https://www.workingnomads.com/jobs/rss/finance",
+        "https://www.workingnomads.com/jobs/rss/customer-support",
+        "https://www.workingnomads.com/jobs/rss/writing",
+        "https://www.workingnomads.com/jobs/rss/qa",
+        "https://www.workingnomads.com/jobs/rss/hr",
+        "https://www.workingnomads.com/jobs/rss/legal"
+    ],
+    "RemoteOK & JobsCollider": [
+        "https://remoteok.com/remote-design-jobs.rss",
+        "https://remoteok.com/rss",
+        "https://jobscollider.com/remote-jobs.rss",
+        "https://remoteok.com/remote-dev-jobs.rss",
+        "https://remoteok.com/remote-exec-jobs.rss",
+        "https://remoteok.com/remote-marketing-jobs.rss",
+        "https://remoteok.com/remote-support-jobs.rss",
+        "https://remoteok.com/remote-writing-jobs.rss",
+        "https://remoteok.com/remote-sales-jobs.rss",
+        "https://remoteok.com/remote-finance-jobs.rss",
+        "https://remoteok.com/remote-product-jobs.rss"
+    ],
+    "Remote First Jobs & Global Feeds": [
+        "https://www.skipthedrive.com/feed/",
+        "https://remotefirstjobs.com/rss/jobs/engineering.rss",
+        "https://remotefirstjobs.com/rss/jobs/development.rss",
+        "https://remotefirstjobs.com/rss/jobs/frontend.rss",
+        "https://remotefirstjobs.com/rss/jobs/backend.rss",
+        "https://remotefirstjobs.com/rss/jobs/fullstack.rss",
+        "https://remotefirstjobs.com/rss/jobs/mobile.rss",
+        "https://remotefirstjobs.com/rss/jobs/ios.rss",
+        "https://remotefirstjobs.com/rss/jobs/android.rss",
+        "https://remotefirstjobs.com/rss/jobs/data-science.rss",
+        "https://remotefirstjobs.com/rss/jobs/machine-learning.rss",
+        "https://remotefirstjobs.com/rss/jobs/cybersecurity.rss",
+        "https://remotefirstjobs.com/rss/jobs/qa.rss",
+        "https://remotefirstjobs.com/rss/jobs/sysadmin.rss",
+        "https://remotefirstjobs.com/rss/jobs/cloud.rss",
+        "https://remotefirstjobs.com/rss/jobs/sales.rss",
+        "https://remotefirstjobs.com/rss/jobs/marketing.rss",
+        "https://remotefirstjobs.com/rss/jobs/content.rss",
+        "https://remotefirstjobs.com/rss/jobs/copywriting.rss",
+        "https://remotefirstjobs.com/rss/jobs/support.rss",
+        "https://remotefirstjobs.com/rss/jobs/success.rss",
+        "https://remotefirstjobs.com/rss/jobs/operations.rss",
+        "https://remotefirstjobs.com/rss/jobs/finance.rss",
+        "https://remotefirstjobs.com/rss/jobs/legal.rss",
+        "https://remotefirstjobs.com/rss/jobs/hr.rss",
+        "https://remotefirstjobs.com/rss/jobs/recruiting.rss",
+        "https://remotefirstjobs.com/rss/jobs/community.rss",
+        "https://remotefirstjobs.com/rss/jobs/communications.rss",
+        "https://remotefirstjobs.com/rss/jobs/pr.rss",
+        "https://remotefirstjobs.com/rss/jobs/education.rss",
+        "https://remotefirstjobs.com/rss/jobs/health.rss",
+        "https://remotefirstjobs.com/rss/jobs/crypto.rss",
+        "https://remotefirstjobs.com/rss/jobs/blockchain.rss",
+        "https://remotefirstjobs.com/rss/jobs/web3.rss",
+        "https://remotefirstjobs.com/rss/jobs/gaming.rss",
+        "https://remotefirstjobs.com/rss/jobs/ecommerce.rss",
+        "https://remotefirstjobs.com/rss/jobs/saas.rss",
+        "https://remotefirstjobs.com/rss/jobs/b2b.rss"
+    ]
+}
 
 def calculate_job_score(title, description=""):
     """
-    Absolute strict filter: Rejects anything that isn't cleanly a Product or UX design role.
+    Strict scoring system with strong preference for UK & EMEA regions, 
+    and heavy penalties for US-only constraints.
     """
     title_lower = title.lower()
     text = (title + " " + description).lower()
     score = 0
 
-    # 1. ABSOLUTE HARD FILTER: Title MUST contain one of these exact design phrases
+    # 1. ABSOLUTE HARD FILTER: Title MUST contain a target design role
     allowed_roles = [
         "product designer", 
         "ux designer", 
@@ -73,9 +155,9 @@ def calculate_job_score(title, description=""):
         "ux/ui designer"
     ]
     if not any(role in title_lower for role in allowed_roles):
-        return -99  # Instant rejection
+        return -99
 
-    # 2. ABSOLUTE HARD FILTER: Instant kill if title contains any non-design terms
+    # 2. ABSOLUTE HARD FILTER: Instant kill for non-design roles
     pollution_terms = [
         "developer", "engineer", "manager", "strategist", "interior", 
         "revit", "writer", "marketing", "sales", "support", "devops", 
@@ -85,7 +167,25 @@ def calculate_job_score(title, description=""):
     if any(term in title_lower for term in pollution_terms):
         return -99
 
-    # Scoring weights
+    # 3. GEOGRAPHIC FILTER & WEIGHTING
+    us_only_terms = ["us only", "united states only", "usa only", "us-only", "americas only"]
+    if any(term in text for term in us_only_terms):
+        return -99  # Discard if restricted strictly to the US
+
+    emea_uk_terms = [
+        "uk", "united kingdom", "london", "europe", "emea", "spain", 
+        "espana", "germany", "berlin", "netherlands", "amsterdam", 
+        "france", "paris", "portugal", "lisbon", "ireland", "dublin", 
+        "eu timezones", "european timezone"
+    ]
+    
+    has_emea_uk = any(term in text for term in emea_uk_terms)
+    if has_emea_uk:
+        score += 6  # Heavy bonus for UK/EMEA alignment
+    else:
+        score -= 3  # Minor penalty if location is completely ambiguous or non-specified
+
+    # Seniority & Remote scoring weights
     if "senior" in text:
         score += 3
     if "lead" in text:
@@ -93,11 +193,11 @@ def calculate_job_score(title, description=""):
     if "remote" in text:
         score += 2
 
-    # Negative modifiers
+    # Negative modifiers for seniority levels or contract restrictions
     unwanted_terms = [
         "junior", "mid", "intermediate", "principal", "staff", 
         "director", "head of", "vp", "agency", "consultancy", 
-        "contract", "freelance", "us only", "united states only"
+        "contract", "freelance"
     ]
     for term in unwanted_terms:
         if term in text:
@@ -141,100 +241,33 @@ def get_existing_notion_urls():
     print(f"Loaded {len(existing_urls)} existing jobs from Notion to avoid duplicates.")
     return existing_urls
 
-def fetch_direct_ats_jobs():
-    print("Fetching jobs via Direct ATS JSON APIs...")
-    jobs = []
-    for target in DIRECT_ATS_TARGETS:
-        slug = target["slug"]
-        platform_type = target["type"]
-        platform_name = target["platform"]
-        
-        try:
-            if platform_type == "greenhouse":
-                endpoint = f"https://boards-api.greenhouse.io/v1/boards/{slug}/jobs"
-                res = requests.get(endpoint, timeout=10)
-                if res.status_code == 200:
-                    data = res.json()
-                    for job in data.get("jobs", []):
-                        title = job.get("title", "")
-                        link = job.get("absolute_url", "")
-                        location = job.get("location", {}).get("name", "")
-                        
-                        score = calculate_job_score(title, location)
-                        if score >= 5 and link:
-                            print(f" [+] Greenhouse Passed: {title} ({slug})")
-                            jobs.append({
-                                "title": f"{title} at {slug.capitalize()}",
-                                "link": link,
-                                "company": slug.capitalize(),
-                                "platform": platform_name
-                            })
-            elif platform_type == "ashby":
-                endpoint = f"https://api.ashbyhq.com/posting-api/job-board/{slug}"
-                res = requests.get(endpoint, timeout=10)
-                if res.status_code == 200:
-                    data = res.json()
-                    for job in data.get("jobs", []):
-                        title = job.get("title", "")
-                        link = job.get("jobUrl", "")
-                        location = job.get("location", "")
-                        
-                        score = calculate_job_score(title, str(location))
-                        if score >= 5 and link:
-                            print(f" [+] Ashby Passed: {title} ({slug})")
-                            jobs.append({
-                                "title": f"{title} at {slug.capitalize()}",
-                                "link": link,
-                                "company": slug.capitalize(),
-                                "platform": platform_name
-                            })
-            elif platform_type == "lever":
-                endpoint = f"https://api.lever.co/v0/postings/{slug}?mode=json"
-                res = requests.get(endpoint, timeout=10)
-                if res.status_code == 200:
-                    data = res.json()
-                    for job in data:
-                        title = job.get("text", "")
-                        link = job.get("hostedUrl", "")
-                        categories = job.get("categories", {})
-                        location = categories.get("location", "")
-                        
-                        score = calculate_job_score(title, str(location))
-                        if score >= 5 and link:
-                            print(f" [+] Lever Passed: {title} ({slug})")
-                            jobs.append({
-                                "title": f"{title} at {slug.capitalize()}",
-                                "link": link,
-                                "company": slug.capitalize(),
-                                "platform": platform_name
-                            })
-        except Exception as e:
-            print(f"Failed to fetch ATS for {slug} ({platform_type}): {e}")
-        time.sleep(0.5)
-    return jobs
-
 def parse_rss_feeds():
-    print("Parsing curated design RSS feeds...")
+    total_feeds = sum(len(feeds) for feeds in RSS_FEEDS_BY_PLATFORM.values())
+    print(f"Parsing {total_feeds} grouped RSS feeds with UK/EMEA prioritization...")
     jobs = []
-    for feed_url in RSS_FEEDS:
-        try:
-            feed = feedparser.parse(feed_url)
-            for entry in feed.entries:
-                title = entry.get("title", "")
-                link = entry.get("link", "")
-                summary = entry.get("summary", "")
-                
-                score = calculate_job_score(title, summary)
-                if score >= 5 and link:
-                    print(f" [+] RSS Feed Passed (Score {score}): {title}")
-                    jobs.append({
-                        "title": title,
-                        "link": link,
-                        "company": "External RSS Board",
-                        "platform": "Other"
-                    })
-        except Exception as e:
-            print(f"Failed to parse RSS feed {feed_url}: {e}")
+    
+    for platform_name, feed_list in RSS_FEEDS_BY_PLATFORM.items():
+        print(f"--- Querying Group: {platform_name} ({len(feed_list)} feeds) ---")
+        for feed_url in feed_list:
+            try:
+                feed = feedparser.parse(feed_url)
+                for entry in feed.entries:
+                    title = entry.get("title", "")
+                    link = entry.get("link", "")
+                    summary = entry.get("summary", "")
+                    
+                    score = calculate_job_score(title, summary)
+                    if score >= 5 and link:
+                        print(f" [+] [{platform_name}] Matched (Score {score}): {title}")
+                        jobs.append({
+                            "title": title,
+                            "link": link,
+                            "company": f"RSS ({platform_name})",
+                            "platform": "Other"
+                        })
+            except Exception as e:
+                pass
+            time.sleep(0.05)
     return jobs
 
 def add_to_notion(job):
@@ -268,10 +301,7 @@ def add_to_notion(job):
 
 def main():
     seen_urls = get_existing_notion_urls()
-    all_new_jobs = []
-
-    all_new_jobs.extend(fetch_direct_ats_jobs())
-    all_new_jobs.extend(parse_rss_feeds())
+    all_new_jobs = parse_rss_feeds()
 
     for job in all_new_jobs:
         link = job.get("link", "")
